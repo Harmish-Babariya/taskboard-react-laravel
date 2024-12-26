@@ -1,26 +1,17 @@
-FROM php:8.1-fpm
+FROM php:8.0-fpm
 
-# Set working directory to /app
-WORKDIR /app
+RUN apt-get update && apt-get install -y libpq-dev git && docker-php-ext-install pdo pdo_pgsql
 
-# Copy composer.lock and composer.json
-COPY composer.lock composer.json ./
+WORKDIR /var/www
 
-# Install any needed packages
-RUN apt-get update && apt-get install -y libzip-dev zip
-
-# Install composer dependencies
-RUN composer install --no-dev --prefer-dist
-
-# Copy the rest of the application code
 COPY . .
 
-# Set environment variables
-ENV COMPOSER_HOME=app/composer
-ENV COMPOSER_CACHE_DIR=app/composer/cache
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Expose port 9000 for FPM
-EXPOSE 9000
+RUN composer install
 
-# Run command when container launches
-CMD ["php", "artisan", "serve", "--host=0.0.0.0"]
+RUN php artisan key:generate
+
+EXPOSE 8000
+
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
